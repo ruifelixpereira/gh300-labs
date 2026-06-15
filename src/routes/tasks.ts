@@ -14,20 +14,20 @@ import { paginate } from "../utils/paginate";
 const tasksRouter = Router();
 
 /**
- * Lists tasks with offset-based pagination.
- * @param req The Express request object with optional query params page and limit.
- * @param req.query.page The page number (1-based, defaults to 1).
- * @param req.query.limit The max items per page (defaults to 10).
+ * Lists tasks with cursor-based pagination.
+ * @param req The Express request object with optional query params limit and cursor.
+ * @param req.query.limit The max items per page (defaults to 20, max 100).
+ * @param req.query.cursor The opaque cursor for the next page.
  * @param res The Express response object.
- * @returns Sends HTTP 200 with JSON body: { data: Task[], meta: PaginationMeta }.
+ * @returns Sends HTTP 200 with JSON body: { data: Task[], nextCursor: string | null, hasMore: boolean }.
  * @example
- * curl -X GET http://localhost:3000/tasks?page=2&limit=5
+ * curl -X GET http://localhost:3000/tasks?limit=5&cursor=YzQwMzEy...
  */
-tasksRouter.get("/", (_req, res) => {
-  const page = Number(_req.query.page) || undefined;
-  const limit = Number(_req.query.limit) || undefined;
-  const tasks = getAllTasks();
-  const result = paginate(tasks, page, limit);
+tasksRouter.get("/", (req, res) => {
+  const sortedTasks = getAllTasks()
+    .slice()
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  const result = paginate(sortedTasks, req.query.limit, req.query.cursor);
   res.status(200).json(result);
 });
 
