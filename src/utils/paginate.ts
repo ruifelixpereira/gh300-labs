@@ -79,7 +79,7 @@ function resolveStartIndex<T extends { id: string }>(items: T[], cursor: unknown
 
 function decodeCursor(cursor: string): string | null {
   try {
-    const decoded = Buffer.from(cursor, "base64").toString("utf8");
+    const decoded = Buffer.from(cursor, "base64url").toString("utf8");
     return encodeCursor(decoded) === cursor ? decoded : null;
   } catch {
     return null;
