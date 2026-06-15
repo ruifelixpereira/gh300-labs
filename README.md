@@ -75,7 +75,7 @@ Base URL: `http://localhost:3000`
 
 #### Get all tasks
 
-- `GET /tasks?limit=20&cursor=<opaque-cursor>`
+- `GET /tasks?limit=20[&cursor=<url-encoded-opaque-cursor>]`
 - Response: `200`
 - Response body: `{ "data": Task[], "nextCursor": string | null, "hasMore": boolean }`
 
