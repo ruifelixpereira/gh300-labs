@@ -37,7 +37,7 @@ export function paginate<T extends { id: string }>(
  * Encodes a task id into an opaque cursor.
  */
 function encodeCursor(taskId: string): string {
-  return Buffer.from(taskId, "utf8").toString("base64");
+  return Buffer.from(taskId, "utf8").toString("base64url");
 }
 
 function resolveStartIndex<T extends { id: string }>(items: T[], cursor: unknown): number {
