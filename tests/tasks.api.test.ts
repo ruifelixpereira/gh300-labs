@@ -5,11 +5,74 @@ import { buildTaskPayload, createTask } from "./helpers/taskTestHelpers";
 
 describe("Task API", () => {
   describe("Happy path CRUD", () => {
-    it("GET /tasks returns 200 and an empty collection by default", async () => {
+    it("GET /tasks returns 200 and an empty paginated collection by default", async () => {
       const response = await request(app).get("/tasks");
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ data: [] });
+      expect(response.body).toEqual({ data: [], nextCursor: null, hasMore: false });
+    });
+
+      await createTask({ title: "Task 1", description: "Description 1" });
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      await createTask({ title: "Task 2", description: "Description 2" });
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      await createTask({ title: "Task 3", description: "Description 3" });
+      const response = await request(app).get("/tasks");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.map((task: { title: string }) => task.title)).toEqual([
+        "Task 3",
+        "Task 2",
+        "Task 1"
+      ]);
+      expect(response.body.nextCursor).toBeNull();
+      expect(response.body.hasMore).toBe(false);
+    });
+
+    it("GET /tasks?limit=5 returns five tasks and a next cursor", async () => {
+      for (let index = 1; index <= 7; index += 1) {
+        await createTask({
+          title: `Task ${index}`,
+          description: `Description ${index}`
+        });
+      }
+
+      const response = await request(app).get("/tasks").query({ limit: "5" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(5);
+      expect(response.body.data.map((task: { title: string }) => task.title)).toEqual([
+        "Task 7",
+        "Task 6",
+        "Task 5",
+        "Task 4",
+        "Task 3"
+      ]);
+      expect(typeof response.body.nextCursor).toBe("string");
+      expect(response.body.hasMore).toBe(true);
+    });
+
+    it("GET /tasks?cursor=xxx returns the next page", async () => {
+      for (let index = 1; index <= 7; index += 1) {
+        await createTask({
+          title: `Task ${index}`,
+          description: `Description ${index}`
+        });
+      }
+
+      const firstPage = await request(app).get("/tasks").query({ limit: "5" });
+      const response = await request(app)
+        .get("/tasks")
+        .query({ limit: "5", cursor: firstPage.body.nextCursor as string });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(2);
+      expect(response.body.data.map((task: { title: string }) => task.title)).toEqual([
+        "Task 2",
+        "Task 1"
+      ]);
+      expect(response.body.nextCursor).toBeNull();
+      expect(response.body.hasMore).toBe(false);
     });
 
     it("POST /tasks creates a task and returns 201", async () => {
@@ -74,6 +137,22 @@ describe("Task API", () => {
   });
 
   describe("Validation errors", () => {
+    it("GET /tasks returns 400 for an invalid limit", async () => {
+      const response = await request(app).get("/tasks").query({ limit: "101" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+      expect(response.body.error.details).toEqual(["limit must be an integer between 1 and 100"]);
+    });
+
+    it("GET /tasks returns 400 for an invalid cursor", async () => {
+      const response = await request(app).get("/tasks").query({ cursor: "not-base64" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+      expect(response.body.error.details).toEqual(["cursor must be a valid pagination cursor"]);
+    });
+
     it("POST /tasks returns 400 when required fields are missing", async () => {
       const response = await request(app).post("/tasks").send({});
 
