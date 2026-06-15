@@ -12,11 +12,11 @@ describe("Task API", () => {
       expect(response.body).toEqual({ data: [], nextCursor: null, hasMore: false });
     });
 
-    it("GET /tasks returns tasks sorted by createdAt descending", async () => {
       await createTask({ title: "Task 1", description: "Description 1" });
+      await new Promise((resolve) => setTimeout(resolve, 1));
       await createTask({ title: "Task 2", description: "Description 2" });
+      await new Promise((resolve) => setTimeout(resolve, 1));
       await createTask({ title: "Task 3", description: "Description 3" });
-
       const response = await request(app).get("/tasks");
 
       expect(response.status).toBe(200);
